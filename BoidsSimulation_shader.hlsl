@@ -257,7 +257,11 @@ void csmain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTi
 	BorderVelCorrection( localVP.pos, localVP.vel );
 	//localVP.vel = BoundaryCorrection( localVP.pos, localVP.vel );
 	localVP.pos.xyz += localVP.vel.xyz * fDeltaT;        //deltaTime;    
-
+	                                    
+	//if (abs(dot( float3(0, 1, 0), localVP.vel )) > 0.99f)
+	//{
+	//	localVP.vel = normalize( localVP.vel * float3(1, 0.95, 1) );
+	//}
 	newPosVel[DTid.x].pos = localVP.pos + f3CenterPos;	// Convert the result pos back to world space
 	newPosVel[DTid.x].vel = localVP.vel;
 }
@@ -318,6 +322,10 @@ void gsmain( triangle GS_Input input[3], inout TriangleStream<PS_Input> SpriteSt
 
 	vel /= velLen;										// Forward vector for each fish
 	float3 fup = float3(0, 1, 0);						// Faked up vector for each fish
+	if (abs( dot( fup, vel ) ) > 0.95)
+	{
+		fup = normalize( float3(pos.x, 0, pos.z) );
+	}
 	float3 right = cross( fup, vel );						// Right vector for each fish
 	float3 up = cross( right, vel );
 	float3x3 rotMatrix = {vel, up, right};			// Rotation matrix to pose each fish heading forward
