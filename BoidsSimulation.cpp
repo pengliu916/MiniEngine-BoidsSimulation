@@ -60,7 +60,7 @@ BoidsSimulation::BoidsSimulation( uint32_t width, uint32_t height )
 	m_SimulationCB.fVisionDist = 3.5f;						// Neighbor dist threshold
 	m_SimulationCB.fVisionAngleCos = -0.6f;					// Neighbor angle(cos) threshold
 	m_SimulationCB.fDeltaT = 0.01f;							// seconds of simulation interval
-	m_SimulationCB.uNumInstance = 10000;
+	m_SimulationCB.uNumInstance = 40 * BLOCK_SIZE;			// has to be multiple of BLOCK_SIZE
 	m_SimulationCB.fFishSize = 0.3f;
 }
 
