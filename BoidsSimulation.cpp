@@ -143,7 +143,7 @@ BoidsSimulation::_LoadAssets()
     _rootSignature[4].InitAsDescriptorRange(
         D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
     _rootSignature.InitStaticSampler(0, Graphics::g_SamplerLinearWrapDesc);
-    _rootSignature.Finalize(
+    _rootSignature.Finalize(L"BoidsSimulation",
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS);
@@ -317,6 +317,11 @@ BoidsSimulation::OnUpdate()
 void
 BoidsSimulation::OnRender(CommandContext& EngineContext)
 {
+    EngineContext.BeginResourceTransition(Graphics::g_SceneColorBuffer,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
+    EngineContext.BeginResourceTransition(Graphics::g_SceneDepthBuffer,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
     float deltaTime = Core::g_deltaTime > _simulationMaxDelta
         ? _simulationMaxDelta
         : (float)Core::g_deltaTime;
@@ -397,6 +402,11 @@ BoidsSimulation::OnRender(CommandContext& EngineContext)
         gfxContext.TransitionResource(
             _boidsPosVelBuffer[_onStageBufferIndex],
             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        gfxContext.TransitionResource(Graphics::g_SceneColorBuffer,
+            D3D12_RESOURCE_STATE_RENDER_TARGET);
+        gfxContext.TransitionResource(Graphics::g_SceneDepthBuffer,
+            D3D12_RESOURCE_STATE_DEPTH_WRITE);
+        gfxContext.FlushResourceBarriers();
         gfxContext.ClearColor(Graphics::g_SceneColorBuffer);
         gfxContext.ClearDepth(Graphics::g_SceneDepthBuffer);
         gfxContext.SetRootSignature(_rootSignature);
@@ -413,7 +423,8 @@ BoidsSimulation::OnRender(CommandContext& EngineContext)
         gfxContext.SetBufferSRV(2, _boidsPosVelBuffer[_onStageBufferIndex]);
         gfxContext.SetDynamicDescriptors(4, 0, 1, &_colorMapTexture.GetSRV());
         gfxContext.SetRenderTargets(
-            1, &Graphics::g_SceneColorBuffer, &Graphics::g_SceneDepthBuffer);
+            1, &Graphics::g_SceneColorBuffer.GetRTV(),
+            Graphics::g_SceneDepthBuffer.GetDSV());
         gfxContext.SetViewport(Graphics::g_DisplayPlaneViewPort);
         gfxContext.SetScisor(Graphics::g_DisplayPlaneScissorRect);
         gfxContext.SetVertexBuffer(0, _vertexBuffer.VertexBufferView());
@@ -449,37 +460,37 @@ bool
 BoidsSimulation::OnEvent(MSG* msg)
 {
     switch (msg->message) {
-        case WM_MOUSEWHEEL: {
-            auto delta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
-            _camera.ZoomRadius(-0.1f*delta);
-        }
-        case WM_POINTERDOWN:
-        case WM_POINTERUPDATE:
-        case WM_POINTERUP: {
-            auto pointerId = GET_POINTERID_WPARAM(msg->wParam);
-            POINTER_INFO pointerInfo;
-            if (GetPointerInfo(pointerId, &pointerInfo)) {
-                if (msg->message == WM_POINTERDOWN) {
-                    // Compute pointer position in render units
-                    POINT p = pointerInfo.ptPixelLocation;
-                    ScreenToClient(Core::g_hwnd, &p);
-                    RECT clientRect;
-                    GetClientRect(Core::g_hwnd, &clientRect);
-                    p.x = p.x * Core::g_config.swapChainDesc.Width /
-                        (clientRect.right - clientRect.left);
-                    p.y = p.y * Core::g_config.swapChainDesc.Height /
-                        (clientRect.bottom - clientRect.top);
-                    // Camera manipulation
-                    _camera.AddPointer(pointerId);
-                }
+    case WM_MOUSEWHEEL: {
+        auto delta = GET_WHEEL_DELTA_WPARAM(msg->wParam);
+        _camera.ZoomRadius(-0.1f*delta);
+    }
+    case WM_POINTERDOWN:
+    case WM_POINTERUPDATE:
+    case WM_POINTERUP: {
+        auto pointerId = GET_POINTERID_WPARAM(msg->wParam);
+        POINTER_INFO pointerInfo;
+        if (GetPointerInfo(pointerId, &pointerInfo)) {
+            if (msg->message == WM_POINTERDOWN) {
+                // Compute pointer position in render units
+                POINT p = pointerInfo.ptPixelLocation;
+                ScreenToClient(Core::g_hwnd, &p);
+                RECT clientRect;
+                GetClientRect(Core::g_hwnd, &clientRect);
+                p.x = p.x * Core::g_config.swapChainDesc.Width /
+                    (clientRect.right - clientRect.left);
+                p.y = p.y * Core::g_config.swapChainDesc.Height /
+                    (clientRect.bottom - clientRect.top);
+                // Camera manipulation
+                _camera.AddPointer(pointerId);
             }
+        }
 
-            // Otherwise send it to the camera controls
-            _camera.ProcessPointerFrames(pointerId, &pointerInfo);
-            if (msg->message == WM_POINTERUP) {
-                _camera.RemovePointer(pointerId);
-            }
+        // Otherwise send it to the camera controls
+        _camera.ProcessPointerFrames(pointerId, &pointerInfo);
+        if (msg->message == WM_POINTERUP) {
+            _camera.RemovePointer(pointerId);
         }
+    }
     }
     return false;
 }
