@@ -45,13 +45,14 @@ private:
     float _camMaxOribtRadius = 10000.f;
     float _camMinOribtRadius = 1.f;
 
-    SimulationCB _simConstantBuffer;
+    SimulationCB _cbSim;
     RenderCB _renderConstantBuffer;
 
     // Buffers
     Texture _colorMapTexture;
     StructuredBuffer _boidsPosVelBuffer[2];
     DynAlloc* _constantBufferPtr;
+    ByteAddressBuffer _constantBuffer;
 
     StructuredBuffer _vertexBuffer;
 
@@ -63,11 +64,11 @@ private:
     OrbitCamera _camera;
 
     uint8_t _onStageBufferIndex = 0;
-    bool _needUpdate = true;
+    bool _cbStaled = true;
     bool _forcePerFrameSimulation = true;
     bool _simulationPaused = false;
     bool _useSeperatedContext = false;
-    float _simulationDelta = 0.015f;
+    float _simDelta = 0.015f;
     float _simulationTimer = 0.0f;
     float _simulationMaxDelta = 0.08f;
 

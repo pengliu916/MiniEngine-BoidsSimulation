@@ -23,7 +23,7 @@ FishVertex FishMesh[] = {
 FishData*
 BoidsSimulation::_CreateInitialFishData()
 {
-    FishData* pFishData = new FishData[_simConstantBuffer.uNumInstance];
+    FishData* pFishData = new FishData[_cbSim.uNumInstance];
     if (!pFishData) {
         return nullptr;
     }
@@ -32,16 +32,16 @@ BoidsSimulation::_CreateInitialFishData()
     float clusterScale = 0.2f;
     float velFactor = 1.f;
 
-    for (uint32_t i = 0; i < _simConstantBuffer.uNumInstance; ++i) {
+    for (uint32_t i = 0; i < _cbSim.uNumInstance; ++i) {
         pFishData[i].pos.x = (rand() / (float)RAND_MAX * 2 - 1) *
-            _simConstantBuffer.f3xyzExpand.x * clusterScale +
-            _simConstantBuffer.f3CenterPos.x;
+            _cbSim.f3xyzExpand.x * clusterScale +
+            _cbSim.f3CenterPos.x;
         pFishData[i].pos.y = (rand() / (float)RAND_MAX * 2 - 1) *
-            _simConstantBuffer.f3xyzExpand.y * clusterScale +
-            _simConstantBuffer.f3CenterPos.y;
+            _cbSim.f3xyzExpand.y * clusterScale +
+            _cbSim.f3CenterPos.y;
         pFishData[i].pos.z = (rand() / (float)RAND_MAX * 2 - 1) *
-            _simConstantBuffer.f3xyzExpand.z * clusterScale +
-            _simConstantBuffer.f3CenterPos.z;
+            _cbSim.f3xyzExpand.z * clusterScale +
+            _cbSim.f3CenterPos.z;
         pFishData[i].vel.x = (rand() / (float)RAND_MAX * 2 - 1) * velFactor;
         pFishData[i].vel.y = (rand() / (float)RAND_MAX * 2 - 1) * velFactor;
         pFishData[i].vel.z = (rand() / (float)RAND_MAX * 2 - 1) * velFactor;
@@ -56,38 +56,38 @@ BoidsSimulation::BoidsSimulation(uint32_t width, uint32_t height)
     _windowHeight = height;
 
     // Strength of avoidance force
-    _simConstantBuffer.fAvoidanceFactor = 8.0f;
+    _cbSim.fAvoidanceFactor = 8.0f;
     // Strength of separation force
-    _simConstantBuffer.fSeperationFactor = 0.4f;
+    _cbSim.fSeperationFactor = 0.4f;
     // Strength of cohesion force
-    _simConstantBuffer.fCohesionFactor = 15.f;
+    _cbSim.fCohesionFactor = 15.f;
     // Strength of alignment force
-    _simConstantBuffer.fAlignmentFactor = 12.f;
+    _cbSim.fAlignmentFactor = 12.f;
     // Strength of seeking force
-    _simConstantBuffer.fSeekingFactor = 0.2f;
+    _cbSim.fSeekingFactor = 0.2f;
     // Seeking target position
-    _simConstantBuffer.f3SeekSourcePos = float3(0.f, 0.f, 0.f);
+    _cbSim.f3SeekSourcePos = float3(0.f, 0.f, 0.f);
     // Strength of flee force
-    _simConstantBuffer.fFleeFactor = 0.f;
+    _cbSim.fFleeFactor = 0.f;
     // Flee push force origin
-    _simConstantBuffer.f3FleeSourcePos = float3(0.f, 0.f, 0.f);
+    _cbSim.f3FleeSourcePos = float3(0.f, 0.f, 0.f);
     // Maximum power a fish could offer
-    _simConstantBuffer.fMaxForce = 200.0f;
-    _simConstantBuffer.f3CenterPos = float3(0.f, 0.f, 0.f);
+    _cbSim.fMaxForce = 200.0f;
+    _cbSim.f3CenterPos = float3(0.f, 0.f, 0.f);
     // m/s maximum speed a fish could run
-    _simConstantBuffer.fMaxSpeed = 20.0f;
-    _simConstantBuffer.f3xyzExpand = float3(60.f, 30.f, 60.f);
+    _cbSim.fMaxSpeed = 20.0f;
+    _cbSim.f3xyzExpand = float3(60.f, 30.f, 60.f);
     // m/s minimum speed a fish have to maintain
-    _simConstantBuffer.fMinSpeed = 2.5f;
+    _cbSim.fMinSpeed = 2.5f;
     // Neighbor dist threshold
-    _simConstantBuffer.fVisionDist = 3.5f;
+    _cbSim.fVisionDist = 3.5f;
     // Neighbor angle(cos) threshold
-    _simConstantBuffer.fVisionAngleCos = -0.6f;
+    _cbSim.fVisionAngleCos = -0.6f;
     // seconds of simulation interval
-    _simConstantBuffer.fDeltaT = 0.01f;
+    _cbSim.fDeltaT = 0.01f;
     // Number of simulated fish. This has to be multiple of BLOCK_SIZE
-    _simConstantBuffer.uNumInstance = 40 * BLOCK_SIZE;
-    _simConstantBuffer.fFishSize = 0.3f;
+    _cbSim.uNumInstance = 40 * BLOCK_SIZE;
+    _cbSim.fFishSize = 0.3f;
 }
 
 BoidsSimulation::~BoidsSimulation()
@@ -217,11 +217,11 @@ BoidsSimulation::_LoadAssets()
 
     // Create the buffer resource used in rendering and simulation
     FishData* pFishData = _CreateInitialFishData();
-    ASSERT(_simConstantBuffer.uNumInstance % BLOCK_SIZE == 0);
+    ASSERT(_cbSim.uNumInstance % BLOCK_SIZE == 0);
     _boidsPosVelBuffer[0].Create(L"BoidsPosVolBuffer[0]",
-        _simConstantBuffer.uNumInstance, sizeof(FishData), (void*)pFishData);
+        _cbSim.uNumInstance, sizeof(FishData), (void*)pFishData);
     _boidsPosVelBuffer[1].Create(L"BoidsPosVolBuffer[1]",
-        _simConstantBuffer.uNumInstance, sizeof(FishData), (void*)pFishData);
+        _cbSim.uNumInstance, sizeof(FishData), (void*)pFishData);
     delete pFishData;
 
     // Define and create vertex buffer for fish
@@ -229,10 +229,12 @@ BoidsSimulation::_LoadAssets()
         sizeof(FishVertex), (void*)FishMesh);
 
     // Create constant buffer
+    _constantBuffer.Create(
+        L"ConstantBuffer", 1, sizeof(SimulationCB), (void*)&_cbSim);
     _constantBufferPtr = new DynAlloc(
         std::move(_allocator.Allocate(sizeof(SimulationCB))));
     memcpy(_constantBufferPtr->DataPtr,
-        &_simConstantBuffer, sizeof(SimulationCB));
+        &_cbSim, sizeof(SimulationCB));
 
     // Load color map texture from file
     ASSERT(_colorMapTexture.CreateFromFIle(L"colorMap.dds", true));
@@ -257,60 +259,41 @@ BoidsSimulation::_LoadSizeDependentResource()
 void
 BoidsSimulation::OnUpdate()
 {
+    using namespace ImGui;
     _camera.ProcessInertia();
     static bool showPanel = true;
     bool valueChanged = false;
-    if (ImGui::Begin("BoidsSimulation", &showPanel)) {
-        ImGui::Checkbox("Separate Context", &_useSeperatedContext);
-        ImGui::Checkbox("PerFrame Simulation", &_forcePerFrameSimulation);
-        ImGui::SameLine();
-        static char pauseSim[] = "Pause Simulation";
-        static char continueSim[] = "Continue Simulation";
-        static bool clicked;
-        char* buttonTex = _simulationPaused ? continueSim : pauseSim;
-        if (clicked = ImGui::Button(buttonTex)) {
-            _simulationPaused = !_simulationPaused;
-        }
-        valueChanged = ImGui::SliderFloat("SimulationDelta",
-            &_simulationDelta, 0.01f, 0.05f);
-        _needUpdate = (_needUpdate || valueChanged);
-        ImGui::Separator();
-        valueChanged = ImGui::SliderFloat("FishSize",
-            &_simConstantBuffer.fFishSize, 0.1f, 10.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("VisionDist",
-            &_simConstantBuffer.fVisionDist, 1.f, 20.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("VisionAngleCos",
-            &_simConstantBuffer.fVisionAngleCos, -1.f, 0.5f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("AvoidanceForce",
-            &_simConstantBuffer.fAvoidanceFactor, 0.f, 10.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("SeparationForce",
-            &_simConstantBuffer.fSeperationFactor, 0.f, 10.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("CohesionForce",
-            &_simConstantBuffer.fCohesionFactor, 0.f, 20.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("AlignmentForce",
-            &_simConstantBuffer.fAlignmentFactor, 0.f, 20.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("SeekingForce",
-            &_simConstantBuffer.fSeekingFactor, 0.f, 5.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("FleeForce",
-            &_simConstantBuffer.fFleeFactor, 0.f, 100.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::SliderFloat("MaxForce",
-            &_simConstantBuffer.fMaxForce, 1.f, 500.f, "%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
-        valueChanged = ImGui::DragFloatRange2("SpeedRange",
-            &_simConstantBuffer.fMinSpeed, &_simConstantBuffer.fMaxSpeed,
-            0.002f, 0.f, 50.f, "Min:%.2f", "Max:%.2f");
-        _needUpdate = (_needUpdate || valueChanged);
+    if (!Begin("BoidsSimulation", &showPanel)) {
+        End();
+        return;
     }
-    ImGui::End();
+    Checkbox("Separate Context", &_useSeperatedContext);
+    Checkbox("PerFrame Simulation", &_forcePerFrameSimulation);
+    SameLine();
+    static char pauseSim[] = "Pause Simulation";
+    static char continueSim[] = "Continue Simulation";
+    static bool clicked;
+    char* buttonTex = _simulationPaused ? continueSim : pauseSim;
+    if (clicked = Button(buttonTex)) {
+        _simulationPaused = !_simulationPaused;
+    }
+#define M(x) _cbStaled |= x
+    M(SliderFloat("SimulationDelta", &_simDelta, 0.01f, 0.05f));
+    Separator();
+    M(SliderFloat("FishSize", &_cbSim.fFishSize, 0.1f, 10.f, "%.2f"));
+    M(SliderFloat("VisionDist", &_cbSim.fVisionDist, 1.f, 20.f, "%.2f"));
+    M(SliderFloat("VisionCos", &_cbSim.fVisionAngleCos, -1.f, 0.5f, "%.2f"));
+    M(SliderFloat("AvoidForce", &_cbSim.fAvoidanceFactor, 0.f, 10.f, "%.2f"));
+    M(SliderFloat("SeparForce", &_cbSim.fSeperationFactor, 0.f, 10.f, "%.2f"));
+    M(SliderFloat("CohForce", &_cbSim.fCohesionFactor, 0.f, 20.f, "%.2f"));
+    M(SliderFloat("AligForce", &_cbSim.fAlignmentFactor, 0.f, 20.f, "%.2f"));
+    M(SliderFloat("SeekingForce", &_cbSim.fSeekingFactor, 0.f, 5.f, "%.2f"));
+    M(SliderFloat("FleeForce", &_cbSim.fFleeFactor, 0.f, 100.f, "%.2f"));
+    M(SliderFloat("MaxForce", &_cbSim.fMaxForce, 1.f, 500.f, "%.2f"));
+    M(DragFloatRange2("SpeedRange", &_cbSim.fMinSpeed, &_cbSim.fMaxSpeed,
+        0.002f, 0.f, 50.f, "Min:%.2f", "Max:%.2f"));
+#undef M
+    End();
 }
 
 // Render the scene.
@@ -321,22 +304,31 @@ BoidsSimulation::OnRender(CommandContext& EngineContext)
         D3D12_RESOURCE_STATE_RENDER_TARGET);
     EngineContext.BeginResourceTransition(Graphics::g_SceneDepthBuffer,
         D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    if (_cbStaled) {
+        memcpy(_constantBufferPtr->DataPtr,
+            &_cbSim, sizeof(SimulationCB));
+
+        EngineContext.CopyBufferRegion(
+            _constantBuffer, 0, _constantBufferPtr->Buffer,
+            _constantBufferPtr->Offset, sizeof(_cbSim));
+        _cbStaled = false;
+    }
 
     float deltaTime = Core::g_deltaTime > _simulationMaxDelta
         ? _simulationMaxDelta
         : (float)Core::g_deltaTime;
     _simulationTimer += deltaTime;
-    uint16_t SimulationCnt = (uint16_t)(_simulationTimer / _simulationDelta);
-    _simulationTimer -= SimulationCnt * _simulationDelta;
+    uint16_t SimulationCnt = (uint16_t)(_simulationTimer / _simDelta);
+    _simulationTimer -= SimulationCnt * _simDelta;
 
     if (_forcePerFrameSimulation) {
         SimulationCnt = 1;
-        _simConstantBuffer.fDeltaT = deltaTime <= 0
-            ? _simulationDelta : deltaTime;
-        _needUpdate = true;
-    } else if (_simConstantBuffer.fDeltaT != _simulationDelta) {
-        _simConstantBuffer.fDeltaT = _simulationDelta;
-        _needUpdate = true;
+        _cbSim.fDeltaT = deltaTime <= 0
+            ? _simDelta : deltaTime;
+        _cbStaled = true;
+    } else if (_cbSim.fDeltaT != _simDelta) {
+        _cbSim.fDeltaT = _simDelta;
+        _cbStaled = true;
     }
 
     wchar_t timerName[32];
@@ -358,18 +350,14 @@ BoidsSimulation::OnRender(CommandContext& EngineContext)
             cptContext.TransitionResource(
                 _boidsPosVelBuffer[1 - _onStageBufferIndex],
                 D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            if (_needUpdate) {
-                _needUpdate = false;
-                memcpy(_constantBufferPtr->DataPtr,
-                    &_simConstantBuffer, sizeof(SimulationCB));
-            }
-            cptContext.SetConstantBuffer(1, _constantBufferPtr->GpuAddress);
+            cptContext.SetConstantBuffer(
+                1, _constantBuffer.RootConstantBufferView());
             cptContext.SetBufferSRV(
                 2, _boidsPosVelBuffer[_onStageBufferIndex]);
             cptContext.SetBufferUAV(
                 3, _boidsPosVelBuffer[1 - _onStageBufferIndex]);
-            ASSERT(_simConstantBuffer.uNumInstance % BLOCK_SIZE == 0);
-            cptContext.Dispatch1D(_simConstantBuffer.uNumInstance, BLOCK_SIZE);
+            ASSERT(_cbSim.uNumInstance % BLOCK_SIZE == 0);
+            cptContext.Dispatch1D(_cbSim.uNumInstance, BLOCK_SIZE);
             _onStageBufferIndex = 1 - _onStageBufferIndex;
             cptContext.BeginResourceTransition(
                 _boidsPosVelBuffer[1 - _onStageBufferIndex],
@@ -412,12 +400,8 @@ BoidsSimulation::OnRender(CommandContext& EngineContext)
         gfxContext.SetRootSignature(_rootSignature);
         gfxContext.SetPipelineState(_graphicsPSO);
         gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-        if (_needUpdate) {
-            _needUpdate = false;
-            memcpy(_constantBufferPtr->DataPtr,
-                &_simConstantBuffer, sizeof(SimulationCB));
-        }
-        gfxContext.SetConstantBuffer(1, _constantBufferPtr->GpuAddress);
+        gfxContext.SetConstantBuffer(
+            1, _constantBuffer.RootConstantBufferView());
         gfxContext.SetDynamicConstantBufferView(
             0, sizeof(RenderCB), (void*)(&_renderConstantBuffer));
         gfxContext.SetBufferSRV(2, _boidsPosVelBuffer[_onStageBufferIndex]);
@@ -428,9 +412,9 @@ BoidsSimulation::OnRender(CommandContext& EngineContext)
         gfxContext.SetViewport(Graphics::g_DisplayPlaneViewPort);
         gfxContext.SetScisor(Graphics::g_DisplayPlaneScissorRect);
         gfxContext.SetVertexBuffer(0, _vertexBuffer.VertexBufferView());
-        ASSERT(_simConstantBuffer.uNumInstance % BLOCK_SIZE == 0);
+        ASSERT(_cbSim.uNumInstance % BLOCK_SIZE == 0);
         gfxContext.DrawInstanced(
-            _countof(FishMesh), _simConstantBuffer.uNumInstance);
+            _countof(FishMesh), _cbSim.uNumInstance);
         gfxContext.BeginResourceTransition(
             _boidsPosVelBuffer[_onStageBufferIndex],
             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
